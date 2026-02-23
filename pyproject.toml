@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=40.8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pycairotk"
+version = "1.4.0"
+description = "A Tkinter DrawArea wrapper class for the pycairo package."
+readme = "README.md"
+authors = [
+    {name = "John Bolkcom", email = "johnbolk6502@gmail.com"}
+]
+requires-python = ">=3.7"
+dependencies = ["pycairo>=1.16.2", "pillow>=9.5.0", "numpy>=1.21.5"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+]
+
+[project.urls]
+Homepage = "https://github.com/johnbolk/pycairotk.git"
