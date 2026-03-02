@@ -1,5 +1,6 @@
 """figure_2.py - A script for creating a vector geometry diagram."""
 
+import math
 import tkinter as tk
 from pycairotk import DrawArea, Brush, Font, TextStyle, Vector
 
@@ -31,16 +32,20 @@ class Figure2(tk.Frame):
         self._draw_axes(scale)
 
         # Create and draw a position vector
+        brush = Brush(2)
         length, angle = 7, 30
         vector = scale * Vector.from_polar_coords(length, angle)
-        self._draw_vector((0, 0), vector)
+        self._draw.line(brush, (0, 0), self._draw.arrow(brush, vector, angle))
 
         # Display the position vector's angle
-        font = Font(height=14, bold=True)
+        brush.width = 1
         radius = 0.4 * vector.length
-        self._draw.arc(Brush(), (0, 0), radius, 0, angle)
-        self._draw_tip(0.4 * vector, angle + 86, 8)
-        label_position = Vector(radius + 10, 0).rotated(angle / 2)
+        arrow_length = 3 * max(6.0, 4 * brush.width)
+        arrow_angle = 90 + angle - math.degrees(0.5 * arrow_length / radius)
+        arrow_base = self._draw.arrow(brush, 0.4 * vector, arrow_angle)
+        self._draw.arc_segment(brush, radius, (radius, 0), arrow_base)
+        font = Font(height=14, bold=True)
+        label_position = Vector.from_polar_coords(radius + 10, angle / 2)
         self._draw.label(TextStyle(font), label_position, f'+ {angle} degrees')
 
         # Display the position vector's length
@@ -49,12 +54,13 @@ class Figure2(tk.Frame):
         self._draw.label(text_style, label_position, f'Length = {length}')
 
         # Display the position vector's coordinates
+        brush = Brush(dash=[5])
         text_style = TextStyle(Font(height=20), anchor=tk.CENTER)
         text = f'({vector.x / scale :0.2f}, {vector.y / scale :0.2f})'
         label_position = Vector(vector.length + 15, 19).rotated(angle)
         self._draw.label(text_style, label_position, text)
-        self._draw.line(Brush(dash=[5]), (0, vector.y), vector)
-        self._draw.line(Brush(dash=[5]), (vector.x, 0), vector)
+        self._draw.line(brush, (0, vector.y), vector)
+        self._draw.line(brush, (vector.x, 0), vector)
 
         self._draw.display()  # This should always be the last statement
 
@@ -71,33 +77,19 @@ class Figure2(tk.Frame):
         self._draw.line(pen, (-100, 0), (300, 0))
         for i in range(-2, 8):
             if i != 0:
-                x = i * scale
-                self._draw.line(pen, (x, 0), (x, -10))
-                x -= 5 * len(str(i))
-                self._draw.label(text_style, (x, -20), str(i))
+                x_pos = i * scale
+                self._draw.line(pen, (x_pos, 0), (x_pos, -10))
+                x_pos -= 5 * len(str(i))
+                self._draw.label(text_style, (x_pos, -20), str(i))
 
         self._draw.label(TextStyle(Font(height=20)), (-30, 330), 'Y-Axis')
         self._draw.line(pen, (0, -100), (0, 300))
         text_style.anchor = tk.E
         for i in range(-2, 8):
             if i != 0:
-                y = i * scale
-                self._draw.line(pen, (0, y), (-10, y))
-                self._draw.label(text_style, (-13, y + 1), str(i))
-
-    def _draw_vector(self, start, vector: Vector):
-        """Draw a representation of the vector."""
-        angle = vector.angle
-        start = Vector(start[0], start[1])
-        self._draw.line(Brush(2), start, self._draw_tip(start + vector, angle))
-
-    def _draw_tip(self, position: Vector, angle, length=12) -> Vector:
-        """Draw a vector tip at the specified position."""
-        end = position - Vector.from_polar_coords(length, angle)
-        base = Vector.from_polar_coords(length / 2, angle + 90)
-        vertices = [end - base, position, end + base]
-        self._draw.polygon(Brush(fill=True), vertices)
-        return end
+                y_pos = i * scale
+                self._draw.line(pen, (0, y_pos), (-10, y_pos))
+                self._draw.label(text_style, (-13, y_pos + 1), str(i))
 
 
 # Execute the script

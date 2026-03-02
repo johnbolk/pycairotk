@@ -14,10 +14,11 @@ This module provides the following class definitions:
 * Shape       - An enumerated class of available datapoint shapes
 * LineCap     - An enumerated class of available line endpoint options
 * LineJoin    - An enumerated class of available line junction options
+* Antialias   - An enumerated class of available rendering options
 * Vector      - A class which represents a geometric vector in the xy plane
 """
 
-__version__ = '1.4.0'
+__version__ = '1.4.5'
 
 import enum
 import math
@@ -28,11 +29,10 @@ from dataclasses import dataclass
 from typing import Any, List, Tuple, Union
 import cairo
 import numpy as np
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageColor
 
 # pylint: disable=no-name-in-module
-from cairo import LineCap, LineJoin
-from . import pycolor
+from cairo import LineCap, LineJoin, Antialias
 
 
 @dataclass
@@ -52,7 +52,7 @@ class Brush:
     dash : list | tuple
         The dash pattern of the line segment, default is a solid line
     line_cap: LineCap
-        The shape of a line segment's end caps, default is Linecap.BUTT
+        The shape of a line segment's end caps, default is LineCap.BUTT
     line_join : LineJoin
         The defined region's perimeter joining style, default is LineJoin.MITER
     """
@@ -362,7 +362,13 @@ class DrawArea(tk.Label):
     _image: ImageTk.PhotoImage
 
     # pylint: disable=no-member
-    def __init__(self, parent: Any, width: int, height: int):
+    def __init__(
+        self,
+        parent: Any,
+        width: int,
+        height: int,
+        antialias: Antialias = Antialias.DEFAULT,
+    ):
         """Construct and initialize the graphics drawing area.
 
         Parameters
@@ -373,6 +379,8 @@ class DrawArea(tk.Label):
             The width of the graphics drawing area (in pixels)
         height: int
             The height of the graphics drawing area (in pixels)
+        antialias : Antialias
+            The type of antialiasing used for rendering text or shapes
 
         Notes
         -----
@@ -382,7 +390,7 @@ class DrawArea(tk.Label):
         super().__init__(parent)
         self._surface = cairo.ImageSurface(cairo.Format.ARGB32, width, height)
         self._context = cairo.Context(self._surface)
-        self._context.set_antialias(cairo.Antialias.BEST)
+        self._context.set_antialias(antialias)
 
         size = (max(1, int(width)), max(1, int(height)))
         self._widget = self._Properties(size, (), Vector(0, 0))
@@ -440,7 +448,7 @@ class DrawArea(tk.Label):
     @origin.setter
     def origin(self, point: Tuple[float, float]):
         """Get/Set the origin location in the graphics drawing area."""
-        if self._valid_coordinate(point):
+        if self._valid_parameter(point):
             new_origin = Vector(point[0], -point[1])
             shift = new_origin - self._widget.origin
             self._context.translate(shift.x, shift.y)
@@ -501,7 +509,7 @@ class DrawArea(tk.Label):
         color : str | tuple
             The specified background color of the DrawArea widget
         """
-        color_value = pycolor.build_rgba_color(color, 3)
+        color_value = self._rgba_color(color, 3)
         if color_value != (0.0, 0.0, 0.0, 0.0):
             self._widget.color = color_value[0:3] + (1.0,)
             self.clear()
@@ -530,22 +538,17 @@ class DrawArea(tk.Label):
         end: float
             The end angle (measured in degrees)
         """
-        if self._valid_coordinate(center):
+        if self._valid_parameter(center) and radius != 0:
             self._context.save()  # Save the Previous Graphics Context
-            sign = math.copysign(1, radius)
-            radius *= sign
-            point = (center[0], self.height - center[1])
-            start = -math.radians(start)
-            end = -math.radians(end)
-            if sign > 0:
-                start, end = end, start
+            x_pos, y_pos = center[0], self.height - center[1]
+            begin = -math.radians(start)
+            stop = -math.radians(end)
+            self._context_set_line_properties(brush)
             if radius > 0:
-                self._context.set_dash(brush.dash)
-                self._context.set_line_cap(brush.line_cap)
-                self._context.set_line_width(max(0.0, brush.width))
-                self._context_set_source_rgba(brush.color)
-                self._context.arc(point[0], point[1], radius, start, end)
-                self._context.stroke()
+                self._context.arc_negative(x_pos, y_pos, radius, begin, stop)
+            else:
+                self._context.arc(x_pos, y_pos, -radius, begin, stop)
+            self._context.stroke()
             self._context.restore()  # Restore the Previous Graphics Context
 
     def arc_segment(
@@ -568,30 +571,51 @@ class DrawArea(tk.Label):
         end : Vector | tuple[float, float]
             The end point coordinate (in pixels)
         """
-        if self._valid_coordinate(start) and self._valid_coordinate(end):
+        if self._valid_parameter(start) and self._valid_parameter(end):
             self._context.save()  # Save the Previous Graphics Context
-            sign = math.copysign(1, radius)
-            radius *= sign
-            start_point = Vector(start[0], self.height - start[1])
-            end_point = Vector(end[0], self.height - end[1])
-            if sign > 0:
-                start_point, end_point = end_point, start_point
-            mid_point = 0.5 * (end_point - start_point)
-            if mid_point.length <= radius:
-                length = math.sqrt((radius / mid_point.length) ** 2 - 1)
-                offset = length * mid_point.rotated(90)
-                center = start_point + (mid_point + offset)
-                begin = self._angle(center, start_point)
-                stop = self._angle(center, end_point)
-                self._context.set_dash(brush.dash)
-                self._context.set_line_cap(brush.line_cap)
-                self._context.set_line_width(max(0.0, brush.width))
-                self._context_set_source_rgba(brush.color)
-                self._context.arc(center.x, center.y, radius, begin, stop)
-                self._context.stroke()
-            else:
-                self.line(self._local_copy(brush), start, end)
+            start = Vector(start[0], self.height - start[1])
+            end = Vector(end[0], self.height - end[1])
+            self._context_set_line_properties(brush)
+            self._create_segment(-radius, start, end)
+            self._context.stroke()
             self._context.restore()  # Restore the Previous Graphics Context
+
+    def arrow(
+        self,
+        brush: Brush,
+        location: Union[Vector, Tuple[float, float]],
+        angle: float,
+    ) -> Vector:
+        """Draw a standard 3:1 ratio arrowhead at the specified location.
+
+        The length of the arrowhead equals: 3 * max(6.0, 4 * brush.width)
+
+        Parameters
+        ----------
+        brush : Brush
+            The specified graphics rendering options
+        location : Vector | tuple[float, float]
+            The location coordinates of the arrowhead's tip (in pixels)
+        angle : float
+            The direction angle of the arrowhead (measured in degrees)
+
+        Returns
+        -------
+        Vector
+            The coordinates of the center of the arrowhead's base (in pixels)
+        """
+        end = Vector(0, self.height)
+        if self._valid_parameter(location):
+            self._context.save()  # Save the Previous Graphics Context
+            position = Vector(location[0], self.height - location[1])
+            width = max(3.0, 2 * brush.width)
+            base = Vector.from_polar_coords(width, -(angle + 90))
+            end = position - Vector.from_polar_coords(6 * width, -angle)
+            self._context_set_source_rgba(brush.color)
+            self._create_polygon([end - base, position, end + base])
+            self._context.fill()
+            self._context.restore()  # Restore the Previous Graphics Context
+        return Vector(end.x, self.height - end.y)
 
     def circle(
         self,
@@ -610,7 +634,7 @@ class DrawArea(tk.Label):
         radius: float
             The specified radius of the circle (in pixels)
         """
-        if self._valid_coordinate(center):
+        if self._valid_parameter(center):
             size = (2 * radius, 2 * radius)
             self.ellipse(self._local_copy(brush), center, size)
 
@@ -631,7 +655,7 @@ class DrawArea(tk.Label):
         shape : Shape
             The specified datapoint shape, default shape is a circle
         """
-        if self._valid_coordinate(center):
+        if self._valid_parameter(center):
             local_brush = self._local_copy(brush)
             full_width = max(5.0, local_brush.width)
             full_width -= 0 if not local_brush.edge else 1
@@ -676,7 +700,7 @@ class DrawArea(tk.Label):
         angle : float
             The rotation angle of the ellipse (measured in degrees)
         """
-        if self._valid_coordinate(center) and self._valid_size(size):
+        if self._valid_parameter(center) and self._valid_parameter(size):
             self._context.save()  # Save the Previous Graphics Context
             width, height = size
             self._context.translate(center[0], self.height - center[1])
@@ -687,10 +711,9 @@ class DrawArea(tk.Label):
                 self._context.arc(0, 0, 0.5 * width, 0, 2 * math.pi)
                 self._context.fill()
             if brush.line_width >= 0:
-                self._context.set_dash(brush.dash)
                 scale_factor = 0.5 * (width + height) / min(width, height)
-                self._context.set_line_width(scale_factor * brush.line_width)
-                self._context_set_source_rgba(brush.line_color)
+                local_brush = brush.copy(scale_factor * brush.line_width)
+                self._context_set_line_properties(local_brush)
                 self._context.arc(0, 0, 0.5 * width, -math.pi, math.pi)
                 self._context.stroke()
             self._context.restore()  # Restore the Previous Graphics Context
@@ -737,7 +760,7 @@ class DrawArea(tk.Label):
             shift_x = -0.5 * width
         if style.anchor in (tk.NE, tk.RIGHT, tk.E, tk.SE):
             shift_x = -width
-        if self._valid_coordinate(start):
+        if self._valid_parameter(start):
             self._context.translate(start[0], self.height - start[1])
             self._context.rotate(-math.radians(style.angle))
             self._context.translate(shift_x, shift_y)
@@ -768,12 +791,9 @@ class DrawArea(tk.Label):
         end : Vector | tuple[float, float]
             The end point coordinates (in pixels)
         """
-        if self._valid_coordinate(start) and self._valid_coordinate(end):
+        if self._valid_parameter(start) and self._valid_parameter(end):
             self._context.save()  # Save the Previous Graphics Context
-            self._context.set_dash(brush.dash)
-            self._context.set_line_cap(brush.line_cap)
-            self._context.set_line_width(max(0.0, brush.width))
-            self._context_set_source_rgba(brush.color)
+            self._context_set_line_properties(brush)
             self._context.move_to(start[0], self.height - start[1])
             self._context.line_to(end[0], self.height - end[1])
             self._context.stroke()
@@ -783,29 +803,29 @@ class DrawArea(tk.Label):
         self,
         brush: Brush,
         coords: Union[List[Vector], List[Tuple[float, float]]],
+        segments: Union[List[float], None] = None,
     ):
-        """Draw a polygon as defined by a list of vertex coordinates.
+        """Draw an enclosed region as defined by the coordinates and segments.
 
         Parameters
         ----------
         brush : Brush
             The specified graphics rendering options
         coords : list[Vector] | list[tuple[float, float]]
-            The list of the vertex coordinates that define the polygon
+            The list of the coordinates that define the polygon
+        segments : list[float] | None
+            The optional list of segment radii, the default is line segments
         """
         if self._valid_vertex_list(coords):
             self._context.save()  # Save the Previous Graphics Context
-            vertices = [Vector(pnt[0], self.height - pnt[1]) for pnt in coords]
+            points = [Vector(pnt[0], self.height - pnt[1]) for pnt in coords]
             if brush.fill:
                 self._context_set_source_rgba(brush.color)
-                self._create_polygon(vertices)
+                self._create_polygon(points, segments)
                 self._context.fill()
             if brush.line_width >= 0:
-                self._context.set_dash(brush.dash)
-                self._context.set_line_join(brush.line_join)
-                self._context.set_line_width(brush.line_width)
-                self._context_set_source_rgba(brush.line_color)
-                self._create_polygon(vertices)
+                self._context_set_line_properties(brush)
+                self._create_polygon(points, segments)
                 self._context.stroke()
             self._context.restore()  # Restore the Previous Graphics Context
 
@@ -826,7 +846,7 @@ class DrawArea(tk.Label):
         size: tuple[float, float]
             The width and height dimensions of the rectangle (in pixels)
         """
-        if self._valid_coordinate(start) and self._valid_size(size):
+        if self._valid_parameter(start) and self._valid_parameter(size):
             self._context.save()  # Save the Previous Graphics Context
             width, height = size
             plot_x, plot_y = start[0], self.height - start[1]
@@ -835,10 +855,7 @@ class DrawArea(tk.Label):
                 self._context.rectangle(plot_x, plot_y, width, -height)
                 self._context.fill()
             if brush.line_width >= 0:
-                self._context.set_dash(brush.dash)
-                self._context.set_line_join(brush.line_join)
-                self._context.set_line_width(brush.line_width)
-                self._context_set_source_rgba(brush.line_color)
+                self._context_set_line_properties(brush)
                 self._context.rectangle(plot_x, plot_y, width, -height)
                 self._context.stroke()
             self._context.restore()  # Restore the Previous Graphics Context
@@ -863,7 +880,7 @@ class DrawArea(tk.Label):
         angle : float
             The rotation angle of the square (measured in degrees)
         """
-        if self._valid_coordinate(center):
+        if self._valid_parameter(center):
             origin = Vector(center[0], center[1])
             corner = Vector.from_polar_coords(side / math.sqrt(2), 45 + angle)
             vertices = [origin + corner.rotated(i * 90) for i in range(4)]
@@ -874,62 +891,95 @@ class DrawArea(tk.Label):
         """Determine the angle of a coordinate with respect to the origin."""
         return math.atan2(coord.y - origin.y, coord.x - origin.x)
 
-    def _create_polygon(self, vertices: List[Vector]):
-        """Draw a polygon specified by the vertices list."""
-        self._context.move_to(vertices[0].x, vertices[0].y)
-        for i in range(1, len(vertices)):
-            self._context.line_to(vertices[i].x, vertices[i].y)
+    def _create_polygon(self, points: List[Vector], segments: Any = None):
+        """Draw a polygon specified by the points and segments lists."""
+        start = points[0]
+        self._context.move_to(start.x, start.y)
+        if segments is None:
+            for vertex in points[1:]:
+                self._context.line_to(vertex.x, vertex.y)
+        else:
+            coords = list(points + [start])
+            default = len(segments) != len(points)
+            radii = [0.0] * len(points) if default else list(segments)
+            for i in range(1, len(coords)):
+                end = coords[i]
+                self._create_segment(-radii[i - 1], start, end)
+                start = end
         self._context.close_path()
 
-    @staticmethod
-    def _local_copy(brush: Brush) -> Brush:
-        """Make a valid color, local copy of the brush."""
-        return brush.copy(color=pycolor.build_rgba_color(brush.color, 4))
+    def _create_segment(self, radius: float, start: Vector, end: Vector):
+        """Draw the specified segment."""
+        mid_point = 0.5 * (end - start)
+        if radius == 0.0 or start == end or mid_point.length > abs(radius):
+            self._context.line_to(end.x, end.y)
+        else:
+            length = math.sqrt((radius / mid_point.length) ** 2 - 1)
+            offset = length * mid_point.rotated(math.copysign(90, radius))
+            center = start + (mid_point + offset)
+            begin, stop = self._angle(center, start), self._angle(center, end)
+            x_pos, y_pos = center
+            if radius < 0:
+                self._context.arc_negative(x_pos, y_pos, -radius, begin, stop)
+            else:
+                self._context.arc(x_pos, y_pos, radius, begin, stop)
 
-    def _context_set_source_rgba(self, color: Union[str, tuple]):
+    def _context_set_line_properties(self, brush: Brush):
+        """Set the context line properties."""
+        self._context.set_dash(brush.dash)
+        self._context.set_line_cap(brush.line_cap)
+        self._context.set_line_join(brush.line_join)
+        self._context.set_line_width(max(0.0, brush.line_width))
+        self._context_set_source_rgba(brush.line_color, 5)
+
+    def _context_set_source_rgba(self, color: Any, level: int = 4):
         """Set the context source rgba color."""
-        color = pycolor.build_rgba_color(color, 4)
+        color = self._rgba_color(color, level)
         self._context.set_source_rgba(color[0], color[1], color[2], color[3])
+
+    def _local_copy(self, brush: Brush) -> Brush:
+        """Make a valid color, local copy of the brush."""
+        return brush.copy(color=self._rgba_color(brush.color, 4))
+
+    @staticmethod
+    def _rgba_color(color: Union[str, tuple], level: int = 1) -> tuple:
+        """Generate a floating point RGBA color value from various formats."""
+        result: tuple = (0.0, 0.0, 0.0, 0.0)
+        error_message = f"Invalid color value: '{color}'"
+        if color:
+            try:
+                if isinstance(color, str):
+                    color = ImageColor.getrgb(color)
+                all_numbers = all(_is_number(value) for value in color)
+                if len(color) >= 3 and all_numbers:
+                    if all(isinstance(value, int) for value in color):
+                        color = tuple((int(value) / 255) for value in color)
+                    color = tuple(max(0.0, min(value, 1.0)) for value in color)
+                    result = color + (1.0,)
+                else:
+                    warnings.warn(error_message, stacklevel=level)
+            except ValueError:
+                warnings.warn(error_message, stacklevel=level)
+        return result[0:4]
+
+    @staticmethod
+    def _valid_parameter(value: Any, level: int = 3) -> bool:
+        """Test for a valid coordinate or size value."""
+        valid = isinstance(value, Vector) or (
+            isinstance(value, tuple) and _is_number_pair(value)
+        )
+        if not valid:
+            warnings.warn(f"Invalid parameter: '{value}'", stacklevel=level)
+        return valid
 
     def _valid_vertex_list(self, coords: list) -> bool:
         """Test for a valid list of coordinate values."""
         valid = False
         if len(coords) > 2:
-            valid = all(self._valid_coordinate(vertex, 5) for vertex in coords)
+            valid = all(self._valid_parameter(vertex, 5) for vertex in coords)
         else:
             warnings.warn('Vertex count is less than 3', stacklevel=3)
         return valid
-
-    def _valid_coordinate(self, value: Any, level: int = 3) -> bool:
-        """Test for a valid coordinate value."""
-        if isinstance(value, Vector):
-            valid = True
-        else:
-            valid = self._is_iterable(value) and _is_number_pair(value)
-        if not valid:
-            warnings.warn(f"Not a coordinate: '{value}'", stacklevel=level)
-        return valid
-
-    def _valid_size(self, value: Any) -> bool:
-        """Test for a valid size value."""
-        valid = (
-            not isinstance(value, Vector)
-            and self._is_iterable(value)
-            and _is_number_pair(value)
-        )
-        if not valid:
-            warnings.warn(f"Not a size value: '{value}'", stacklevel=3)
-        return valid
-
-    @staticmethod
-    def _is_iterable(value) -> bool:
-        """Test for an iterable value."""
-        try:
-            iter(value)
-            status = True
-        except TypeError:
-            status = False
-        return status
 
 
 def _is_number_pair(value: Any) -> bool:

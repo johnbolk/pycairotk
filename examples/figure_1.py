@@ -39,19 +39,19 @@ class Figure1(tk.Frame):
         self._draw.line(pen, (-100, 0), (300, 0))
         for i in range(-2, 8):
             if i != 0:
-                x = i * scale
-                self._draw.line(pen, (x, 0), (x, -10))
-                x -= 5 * len(str(i))
-                self._draw.label(text_style, (x, -20), str(i))
+                x_pos = i * scale
+                self._draw.line(pen, (x_pos, 0), (x_pos, -10))
+                x_pos -= 5 * len(str(i))
+                self._draw.label(text_style, (x_pos, -20), str(i))
 
         self._draw.label(TextStyle(Font(height=20)), (-30, 330), 'Y-Axis')
         self._draw.line(pen, (0, -100), (0, 300))
         text_style.anchor = tk.E
         for i in range(-2, 8):
             if i != 0:
-                y = i * scale
-                self._draw.line(pen, (0, y), (-10, y))
-                self._draw.label(text_style, (-13, y + 1), str(i))
+                y_pos = i * scale
+                self._draw.line(pen, (0, y_pos), (-10, y_pos))
+                self._draw.label(text_style, (-13, y_pos + 1), str(i))
 
         self._draw.display()  # This should always be the last statement
 
