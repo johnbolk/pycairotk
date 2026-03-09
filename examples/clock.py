@@ -40,9 +40,9 @@ class Clock(tk.Frame):
         hrs_angle = self._hour * (time.hour % 12) + (min_angle / 12)
 
         self._draw_face()
-        self._draw_3d_hand(Brush(11), 0.6, hrs_angle, 4)
-        self._draw_3d_hand(Brush(7), 0.88, min_angle, 6)
-        self._draw_3d_hand(Brush(3, 'red', edge='red'), 0.935, sec_angle, 8)
+        self._draw_3d_hand(Brush(9, fill=True), 0.60, hrs_angle, 4)
+        self._draw_3d_hand(Brush(6, fill=True), 0.85, min_angle, 6)
+        self._draw_3d_hand(Brush(3, 'red'), 0.935, sec_angle, 8)
         self._clock.datapoint(Brush(3), (0, 0))
         self._clock.display()
 
@@ -66,29 +66,43 @@ class Clock(tk.Frame):
         # Label the hours
         font = Font('Times', 65, True)
         style = TextStyle(font, 'black', tk.CENTER, border_width=4)
-        length = [0.76, 0.79, 0.81, 0.78, 0.78, 0.77,
-                  0.77, 0.79, 0.80, 0.75, 0.77, 0.78]
+        length = [0.77, 0.79, 0.80, 0.78, 0.78, 0.77,
+                  0.77, 0.78, 0.79, 0.74, 0.76, 0.78]
         for i in range(1, 13):
             position = length[i - 1] * self._noon_start.rotated(i * self._hour)
             self._clock.label(style, position, str(i))
 
-    def _draw_3d_hand(self, pen, length, angle, shift):
+    def _draw_3d_hand(self, brush, length, angle, shift):
         """Draw a clock hand and its shadow."""
-        self._draw_hand(pen.copy(color='#00000050'), length, angle, shift)
-        self._draw_hand(pen, length, angle, 0)
+        self._draw_hand(brush.copy(color='#00000050'), length, angle, shift)
+        self._draw_hand(brush, length, angle, 0)
 
-    def _draw_hand(self, pen, length, angle, shift):
+    def _draw_hand(self, brush, length, angle, shift):
         """Draw a clock hand."""
-        head = length * self._noon_start.rotated(angle)
-        tail = -head * (0.3 if pen.edge else 0.25)
-        offset = shift * Vector(1, -1)
-        self._clock.line(pen, head + offset, tail + offset)
-        if pen.edge:  # Draw a circular loop on the tail end of the hand
+        center = shift * Vector(1, -1)
+        head = length * self._noon_start.rotated(angle) + center
+        tail = -head * (0.4 if brush.fill else 0.3) + center
+        if brush.fill:  # Draw the minute and hour hands
+            base = Vector.from_polar_coords(3, head.angle + 90)
+            size = brush.width * base / 3
+            body = 0.7 * head
+            hand = [
+                center - base,
+                body - size,
+                head,
+                body + size,
+                center + base,
+                tail + size,
+                0.9 * tail,
+                tail - size,
+            ]
+            self._clock.polygon(brush, hand)
+        else:  # Draw the second hand with a circular loop on the tail
             radius = 10
-            loop_center = tail + Vector.from_polar_coords(radius, angle - 90)
-            self._clock.circle(pen, loop_center + offset, radius)
-            pen.edge = ''  # Clear the loop flag
-        self._clock.datapoint(pen.copy(pen.width + 10), offset)
+            loop_center = tail + Vector.from_polar_coords(radius, tail.angle)
+            self._clock.line(brush, head, tail)
+            self._clock.circle(brush, loop_center, radius)
+        self._clock.datapoint(brush.copy(brush.width + 10), center)
 
 
 # Execute the script

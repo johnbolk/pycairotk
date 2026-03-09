@@ -15,24 +15,25 @@ This module provides the following class definitions:
 * LineCap     - An enumerated class of available line endpoint options
 * LineJoin    - An enumerated class of available line junction options
 * Antialias   - An enumerated class of available rendering options
+* Size        - A named tuple of the width and height dimensions of an object
 * Vector      - A class which represents a geometric vector in the xy plane
 """
 
-__version__ = '1.4.5'
+__version__ = '1.4.6'
 
 import enum
 import math
 import warnings
 import platform
 import tkinter as tk
-from dataclasses import dataclass
-from typing import Any, List, Tuple, Union
+from dataclasses import dataclass, replace
+from typing import Any, List, Tuple, Union, Optional, NamedTuple
 import cairo
 import numpy as np
 from PIL import Image, ImageTk, ImageColor
 
 # pylint: disable=no-name-in-module
-from cairo import LineCap, LineJoin, Antialias
+from cairo import Antialias, FontSlant, FontWeight, LineCap, LineJoin
 
 
 @dataclass
@@ -42,19 +43,19 @@ class Brush:
     Attributes
     ----------
     width : float
-        The width of the displayed line segment or the datapoint size
+        The width of the displayed line/arc segment or the datapoint size
     color : str | tuple
-        The color of a line segment, perimeter, or the solid fill color
+        The color of a line/arc segment, perimeter, or the solid fill color
     fill : bool
-        A True value will fill the defined region with solid color
+         If True, the polygon is filled with solid color, default is False
     edge : str | tuple
-        The color of the solid filled region's perimeter
+        The perimeter color of the solid filled polygon, default is no color
     dash : list | tuple
-        The dash pattern of the line segment, default is a solid line
+        The dash pattern of the line/arc segment, default is a solid line
     line_cap: LineCap
-        The shape of a line segment's end caps, default is LineCap.BUTT
+        The shape of a line/arc segment's end caps, default is LineCap.BUTT
     line_join : LineJoin
-        The defined region's perimeter joining style, default is LineJoin.MITER
+        The polygon's perimeter joining style, default is LineJoin.MITER
     """
 
     width: float = 1.0
@@ -77,19 +78,25 @@ class Brush:
 
     def copy(
         self,
-        width: float = -1,
-        color: Union[str, tuple] = '',
+        width: Optional[float] = None,
+        color: Optional[Union[str, tuple]] = None,
+        fill: Optional[bool] = None
     ) -> 'Brush':
-        """Make a deep copy with an optional new width and/or color."""
-        return Brush(
-            self.width if width < 0 else width,
-            self.color if not color else color,
-            self.fill,
-            self.edge,
-            self.dash,
-            self.line_cap,
-            self.line_join,
-        )
+        """Make a deep copy with optional new width, color, and/or fill values.
+
+        Parameters
+        ----------
+        width : float, optional
+            The new width assigned to the copy, default is the original width
+        color : str | tuple, optional
+            The new color assigned to the copy, default is the original color
+        fill : bool, optional
+            The new fill assigned to the copy, default is the original fill
+        """
+        new_width = self.width if width is None else width
+        new_color = self.color if color is None else color
+        new_fill = self.fill if fill is None else fill
+        return replace(self, width=new_width, color=new_color, fill=new_fill)
 
 
 @dataclass
@@ -127,7 +134,7 @@ class TextStyle:
     anchor : str
         The anchor point of the displayed text, default is tk.LEFT
     angle : float
-        The orientation angle of the displayed text (measured in degrees)
+        The orientation angle (measured in degrees), default angle is 0.0
     border_width: float
         A positive value displays outlined text, default is -1.0
     """
@@ -146,6 +153,41 @@ class Shape(enum.IntEnum):
     DIAMOND = 1
     SQUARE = 2
     TRIANGLE = 3
+
+
+@dataclass(frozen=True)
+class BorderStyle:
+    """The available border style options for the DrawArea.
+
+    Attributes
+    ----------
+    Raised
+        The DrawArea appears raised above the background.
+    Sunken
+        The DrawArea appears recessed into the background.
+    Groove
+        The DrawArea has a carved groove border.
+    Ridge
+        The DrawArea has a raised ridge border.
+    Solid
+        The DrawArea has a simple solid border.
+    Flat
+        The DrawArea appears flat, no border.
+    """
+
+    Raised = tk.RAISED
+    Sunken = tk.SUNKEN
+    Groove = tk.GROOVE
+    Ridge = tk.RIDGE
+    Solid = tk.SOLID
+    Flat = tk.FLAT
+
+
+class Size(NamedTuple):
+    """The width and height dimensions of an object."""
+
+    width: float
+    height: float
 
 
 class Vector:
@@ -205,11 +247,9 @@ class Vector:
         return math.degrees(math.atan2(self.y, self.x))
 
     def __eq__(self, other: Any) -> bool:
-        """Test for identical vector components (self == other)."""
-        return (
-            isinstance(other, (Vector, tuple))
-            and _is_number_pair(other)
-            and abs(self.x - other[0]) < 5.0e-07
+        """Test for identical vector/tuple component values (self == other)."""
+        return (isinstance(other, Vector) or _is_valid_tuple(other)) and (
+            abs(self.x - other[0]) < 5.0e-07
             and abs(self.y - other[1]) < 5.0e-07
         )
 
@@ -319,34 +359,6 @@ class Vector:
         return Vector(scale * self.x, scale * self.y)
 
 
-@dataclass(frozen=True)
-class BorderStyle:
-    """The available border style options for the DrawArea.
-
-    Attributes
-    ----------
-    Raised
-        The DrawArea appears raised above the background.
-    Sunken
-        The DrawArea appears recessed into the background.
-    Groove
-        The DrawArea has a carved groove border.
-    Ridge
-        The DrawArea has a raised ridge border.
-    Solid
-        The DrawArea has a simple solid border.
-    Flat
-        The DrawArea appears flat, no border.
-    """
-
-    Raised = tk.RAISED
-    Sunken = tk.SUNKEN
-    Groove = tk.GROOVE
-    Ridge = tk.RIDGE
-    Solid = tk.SOLID
-    Flat = tk.FLAT
-
-
 class DrawArea(tk.Label):
     """A Tkinter widget class for rendering and displaying graphics."""
 
@@ -379,7 +391,7 @@ class DrawArea(tk.Label):
             The width of the graphics drawing area (in pixels)
         height: int
             The height of the graphics drawing area (in pixels)
-        antialias : Antialias
+        antialias : Antialias, optional
             The type of antialiasing used for rendering text or shapes
 
         Notes
@@ -448,7 +460,7 @@ class DrawArea(tk.Label):
     @origin.setter
     def origin(self, point: Tuple[float, float]):
         """Get/Set the origin location in the graphics drawing area."""
-        if self._valid_parameter(point):
+        if self._valid_coordinate(point):
             new_origin = Vector(point[0], -point[1])
             shift = new_origin - self._widget.origin
             self._context.translate(shift.x, shift.y)
@@ -518,42 +530,6 @@ class DrawArea(tk.Label):
     def arc(
         self,
         brush: Brush,
-        center: Union[Vector, Tuple[float, float]],
-        radius: float,
-        start: float,
-        end: float,
-    ):
-        """Draw an arc of given radius from the start angle to the end angle.
-
-        Parameters
-        ----------
-        brush: Brush
-            The specified graphics rendering options
-        center: Vector | tuple[float, float]
-            The center location coordinates of the arc (in pixels)
-        radius: float
-            The arc radius (in pixels), negative denotes a clockwise direction
-        start: float
-            The start angle (measured in degrees)
-        end: float
-            The end angle (measured in degrees)
-        """
-        if self._valid_parameter(center) and radius != 0:
-            self._context.save()  # Save the Previous Graphics Context
-            x_pos, y_pos = center[0], self.height - center[1]
-            begin = -math.radians(start)
-            stop = -math.radians(end)
-            self._context_set_line_properties(brush)
-            if radius > 0:
-                self._context.arc_negative(x_pos, y_pos, radius, begin, stop)
-            else:
-                self._context.arc(x_pos, y_pos, -radius, begin, stop)
-            self._context.stroke()
-            self._context.restore()  # Restore the Previous Graphics Context
-
-    def arc_segment(
-        self,
-        brush: Brush,
         radius: float,
         start: Union[Vector, Tuple[float, float]],
         end: Union[Vector, Tuple[float, float]],
@@ -571,7 +547,7 @@ class DrawArea(tk.Label):
         end : Vector | tuple[float, float]
             The end point coordinate (in pixels)
         """
-        if self._valid_parameter(start) and self._valid_parameter(end):
+        if self._valid_coordinate(start) and self._valid_coordinate(end):
             self._context.save()  # Save the Previous Graphics Context
             start = Vector(start[0], self.height - start[1])
             end = Vector(end[0], self.height - end[1])
@@ -605,7 +581,7 @@ class DrawArea(tk.Label):
             The coordinates of the center of the arrowhead's base (in pixels)
         """
         end = Vector(0, self.height)
-        if self._valid_parameter(location):
+        if self._valid_coordinate(location):
             self._context.save()  # Save the Previous Graphics Context
             position = Vector(location[0], self.height - location[1])
             width = max(3.0, 2 * brush.width)
@@ -634,7 +610,7 @@ class DrawArea(tk.Label):
         radius: float
             The specified radius of the circle (in pixels)
         """
-        if self._valid_parameter(center):
+        if self._valid_coordinate(center):
             size = (2 * radius, 2 * radius)
             self.ellipse(self._local_copy(brush), center, size)
 
@@ -652,30 +628,23 @@ class DrawArea(tk.Label):
             The specified graphics rendering options
         center : Vector | tuple[float, float]
             The center location coordinates (in pixels)
-        shape : Shape
+        shape : Shape, optional
             The specified datapoint shape, default shape is a circle
         """
-        if self._valid_parameter(center):
-            local_brush = self._local_copy(brush)
-            full_width = max(5.0, local_brush.width)
-            full_width -= 0 if not local_brush.edge else 1
-            half_width = 0.5 * full_width
-            local_brush.fill = True
-            local_brush.width = 2
+        if self._valid_coordinate(center):
+            line_width = 1 if brush.width < 8 else 2
+            local_brush = self._local_copy(brush, line_width, True)
+            width = max(5.0, brush.width) - (line_width if brush.edge else 0)
             if shape == Shape.CIRCLE:
-                self.circle(local_brush, center, half_width)
+                self.circle(local_brush, center, 0.5 * width)
             elif shape == Shape.DIAMOND:
-                self.square(local_brush, center, full_width, 45)
+                self.square(local_brush, center, 0.8 * width, 45)
             elif shape == Shape.SQUARE:
-                self.square(local_brush, center, full_width)
+                self.square(local_brush, center, width)
             elif shape == Shape.TRIANGLE:
-                half_width += 1
-                plot_y = center[1] - (1 + full_width / 3)
-                vertices = [
-                    (center[0], plot_y + full_width),
-                    (center[0] - half_width, plot_y),
-                    (center[0] + half_width, plot_y),
-                ]
+                center = Vector(center[0], center[1])
+                vertex = Vector(0, 0.6 * width)
+                vertices = [center + vertex.rotated(i * 120) for i in range(3)]
                 self.polygon(local_brush, vertices)
             else:
                 warnings.warn(f"Unrecognized shape: '{shape}'", stacklevel=2)
@@ -684,7 +653,7 @@ class DrawArea(tk.Label):
         self,
         brush: Brush,
         center: Union[Vector, Tuple[float, float]],
-        size: Tuple[float, float],
+        size: Union[Size, Tuple[float, float]],
         angle: float = 0.0,
     ):
         """Draw an ellipse of given dimensions, centered on the given location.
@@ -695,12 +664,12 @@ class DrawArea(tk.Label):
             The specified graphics rendering options
         center : Vector | tuple[float, float]
             The center location coordinates (in pixels)
-        size : tuple[float, float]
+        size : Size | tuple[float, float]
             The width and height dimensions of the ellipse (in pixels)
-        angle : float
-            The rotation angle of the ellipse (measured in degrees)
+        angle : float, optional
+            The rotation angle (measured in degrees), default angle is 0.0
         """
-        if self._valid_parameter(center) and self._valid_parameter(size):
+        if self._valid_coordinate(center) and self._valid_dimensions(size):
             self._context.save()  # Save the Previous Graphics Context
             width, height = size
             self._context.translate(center[0], self.height - center[1])
@@ -723,7 +692,7 @@ class DrawArea(tk.Label):
         style: TextStyle,
         start: Union[Vector, Tuple[float, float]],
         text: str,
-    ) -> Tuple[float, float]:
+    ) -> Size:
         """Draw a text label at the starting location.
 
         Parameters
@@ -737,30 +706,31 @@ class DrawArea(tk.Label):
 
         Returns
         -------
-        tuple[float, float]
+        Size
             The dimensions of the rendered text string (in pixels)
         """
+        text = f'{text}'  # Ensure a string value
         self._context.save()  # Save the Previous Graphics Context
-        font = style.font
         self._context.select_font_face(
-            font.family,
-            cairo.FontSlant.ITALIC if font.italic else cairo.FontSlant.NORMAL,
-            cairo.FontWeight.BOLD if font.bold else cairo.FontWeight.NORMAL,
+            style.font.family,
+            FontSlant.ITALIC if style.font.italic else FontSlant.NORMAL,
+            FontWeight.BOLD if style.font.bold else FontWeight.NORMAL,
         )
-        self._context.set_font_size(font.height)
+        self._context.set_font_size(style.font.height)
         self._context_set_source_rgba(style.color)
         extents = self._context.text_extents(text)
         width, height = extents.width + 2, extents.height
-        shift_x, shift_y = 1.0, -3.0
+        shift_x, shift_y = 1.5, -3.0
         if style.anchor in (tk.NW, tk.N, tk.NE):
             shift_y = height
         if style.anchor in (tk.W, tk.LEFT, tk.CENTER, tk.RIGHT, tk.E):
-            shift_y = 0.5 * height
+            scale = 0.17 if any(char in text for char in 'gjpqy') else 0.02
+            shift_y = 0.5 * height - 0.75 - scale * style.font.height
         if style.anchor in (tk.N, tk.CENTER, tk.S):
-            shift_x = -0.5 * width
+            shift_x = -0.5 * width + 2.0 - 0.05 * style.font.height
         if style.anchor in (tk.NE, tk.RIGHT, tk.E, tk.SE):
             shift_x = -width
-        if self._valid_parameter(start):
+        if self._valid_coordinate(start):
             self._context.translate(start[0], self.height - start[1])
             self._context.rotate(-math.radians(style.angle))
             self._context.translate(shift_x, shift_y)
@@ -772,7 +742,7 @@ class DrawArea(tk.Label):
                 self._context.set_line_width(style.border_width)
             self._context.stroke()
         self._context.restore()  # Restore the Previous Graphics Context
-        return extents.width + 3, extents.height + 3
+        return Size(extents.width + 3, extents.height + 3)
 
     def line(
         self,
@@ -791,7 +761,7 @@ class DrawArea(tk.Label):
         end : Vector | tuple[float, float]
             The end point coordinates (in pixels)
         """
-        if self._valid_parameter(start) and self._valid_parameter(end):
+        if self._valid_coordinate(start) and self._valid_coordinate(end):
             self._context.save()  # Save the Previous Graphics Context
             self._context_set_line_properties(brush)
             self._context.move_to(start[0], self.height - start[1])
@@ -803,9 +773,17 @@ class DrawArea(tk.Label):
         self,
         brush: Brush,
         coords: Union[List[Vector], List[Tuple[float, float]]],
-        segments: Union[List[float], None] = None,
+        segments: Union[List[int], List[float], None] = None,
     ):
         """Draw an enclosed region as defined by the coordinates and segments.
+
+        The polygon's perimeter path endpoint is always joined to coords[0].
+        By default, the segments parameter is set to None, which results in a
+        perimeter path composed of all line segments. When the segments
+        parameter is set to a list of radii, each radius value is rendered as
+        follows: A radius > 0 draws a counter-clockwise arc segment. A radius
+        < 0 draws a clockwise arc segment. A radius == 0 draws a line segment.
+        The number of segments must equal the number of coordinates.
 
         Parameters
         ----------
@@ -813,27 +791,31 @@ class DrawArea(tk.Label):
             The specified graphics rendering options
         coords : list[Vector] | list[tuple[float, float]]
             The list of the coordinates that define the polygon
-        segments : list[float] | None
-            The optional list of segment radii, the default is line segments
+        segments : list[int] | list[float] | None, optional
+            The optional list of segment radii, defaults to all line segments
         """
-        if self._valid_vertex_list(coords):
+        if self._valid_coord_list(coords) and self._valid_radii_list(segments):
             self._context.save()  # Save the Previous Graphics Context
-            points = [Vector(pnt[0], self.height - pnt[1]) for pnt in coords]
-            if brush.fill:
-                self._context_set_source_rgba(brush.color)
-                self._create_polygon(points, segments)
-                self._context.fill()
-            if brush.line_width >= 0:
-                self._context_set_line_properties(brush)
-                self._create_polygon(points, segments)
-                self._context.stroke()
+            vertices = [Vector(pnt[0], self.height - pnt[1]) for pnt in coords]
+            if segments is None or len(coords) == len(segments):
+                if brush.fill:
+                    self._context_set_source_rgba(brush.color)
+                    self._create_polygon(vertices, segments)
+                    self._context.fill()
+                if brush.line_width >= 0:
+                    self._context_set_line_properties(brush)
+                    self._create_polygon(vertices, segments)
+                    self._context.stroke()
+            else:
+                error = "Lengths do not match: 'len(coords) != len(segments)'"
+                warnings.warn(error, stacklevel=2)
             self._context.restore()  # Restore the Previous Graphics Context
 
     def rectangle(
         self,
         brush: Brush,
         start: Union[Vector, Tuple[float, float]],
-        size: Tuple[float, float],
+        size: Union[Size, Tuple[float, float]],
     ):
         """Draw a rectangle with the given dimensions at the starting location.
 
@@ -843,10 +825,10 @@ class DrawArea(tk.Label):
             The specified graphics rendering options
         start: Vector | tuple[float, float]
             The starting location coordinates (in pixels)
-        size: tuple[float, float]
+        size: Size | tuple[float, float]
             The width and height dimensions of the rectangle (in pixels)
         """
-        if self._valid_parameter(start) and self._valid_parameter(size):
+        if self._valid_coordinate(start) and self._valid_dimensions(size):
             self._context.save()  # Save the Previous Graphics Context
             width, height = size
             plot_x, plot_y = start[0], self.height - start[1]
@@ -877,10 +859,10 @@ class DrawArea(tk.Label):
             The center location coordinates (in pixels)
         side : float
             The side length of the square (in pixels)
-        angle : float
-            The rotation angle of the square (measured in degrees)
+        angle : float, optional
+            The rotation angle (measured in degrees), default angle is 0.0
         """
-        if self._valid_parameter(center):
+        if self._valid_coordinate(center):
             origin = Vector(center[0], center[1])
             corner = Vector.from_polar_coords(side / math.sqrt(2), 45 + angle)
             vertices = [origin + corner.rotated(i * 90) for i in range(4)]
@@ -891,20 +873,17 @@ class DrawArea(tk.Label):
         """Determine the angle of a coordinate with respect to the origin."""
         return math.atan2(coord.y - origin.y, coord.x - origin.x)
 
-    def _create_polygon(self, points: List[Vector], segments: Any = None):
-        """Draw a polygon specified by the points and segments lists."""
-        start = points[0]
+    def _create_polygon(self, vertices: List[Vector], segments: Any = None):
+        """Draw a polygon specified by the vertices and segments lists."""
+        start = vertices[0]
         self._context.move_to(start.x, start.y)
         if segments is None:
-            for vertex in points[1:]:
+            for vertex in vertices[1:]:
                 self._context.line_to(vertex.x, vertex.y)
         else:
-            coords = list(points + [start])
-            default = len(segments) != len(points)
-            radii = [0.0] * len(points) if default else list(segments)
-            for i in range(1, len(coords)):
-                end = coords[i]
-                self._create_segment(-radii[i - 1], start, end)
+            coordinates = list(vertices + [start])
+            for i, end in enumerate(coordinates[1:]):
+                self._create_segment(-segments[i], start, end)
                 start = end
         self._context.close_path()
 
@@ -937,9 +916,9 @@ class DrawArea(tk.Label):
         color = self._rgba_color(color, level)
         self._context.set_source_rgba(color[0], color[1], color[2], color[3])
 
-    def _local_copy(self, brush: Brush) -> Brush:
+    def _local_copy(self, brush: Brush, width=None, fill=None) -> Brush:
         """Make a valid color, local copy of the brush."""
-        return brush.copy(color=self._rgba_color(brush.color, 4))
+        return brush.copy(width, self._rgba_color(brush.color, 4), fill)
 
     @staticmethod
     def _rgba_color(color: Union[str, tuple], level: int = 1) -> tuple:
@@ -963,30 +942,56 @@ class DrawArea(tk.Label):
         return result[0:4]
 
     @staticmethod
-    def _valid_parameter(value: Any, level: int = 3) -> bool:
-        """Test for a valid coordinate or size value."""
+    def _valid_coordinate(value: Any, level: int = 3) -> bool:
+        """Test for a valid coordinate value."""
         valid = isinstance(value, Vector) or (
-            isinstance(value, tuple) and _is_number_pair(value)
+            not isinstance(value, Size) and _is_valid_tuple(value)
         )
         if not valid:
-            warnings.warn(f"Invalid parameter: '{value}'", stacklevel=level)
+            warnings.warn(f"Not a valid location: '{value}'", stacklevel=level)
         return valid
 
-    def _valid_vertex_list(self, coords: list) -> bool:
+    @staticmethod
+    def _valid_dimensions(value: Any) -> bool:
+        """Test for a valid dimensions value."""
+        valid = isinstance(value, Size) or _is_valid_tuple(value)
+        if not valid:
+            warnings.warn(f"Not a valid size: '{value}'", stacklevel=3)
+        return valid
+
+    def _valid_coord_list(self, coords: list) -> bool:
         """Test for a valid list of coordinate values."""
         valid = False
-        if len(coords) > 2:
-            valid = all(self._valid_parameter(vertex, 5) for vertex in coords)
+        if isinstance(coords, list) and len(coords) > 2:
+            valid = all(self._valid_coordinate(vertex, 5) for vertex in coords)
         else:
-            warnings.warn('Vertex count is less than 3', stacklevel=3)
+            warnings.warn('coordinates count is less than 3', stacklevel=3)
+        return valid
+
+    @staticmethod
+    def _valid_radii_list(radii: Union[list, None]) -> bool:
+        """Test for a valid list of segment radii values or None."""
+        valid = radii is None
+        if radii is not None:
+            if isinstance(radii, list) and len(radii) > 2:
+                valid = all(_is_number(value, 5) for value in radii)
+            else:
+                warnings.warn('segment count is less than 3', stacklevel=3)
         return valid
 
 
-def _is_number_pair(value: Any) -> bool:
-    """Test for a pair of numbers."""
-    return len(value) == 2 and all(_is_number(n) for n in value)
+def _is_valid_tuple(value: Any) -> bool:
+    """Test for a valid tuple value."""
+    return (
+        isinstance(value, tuple)
+        and len(value) == 2
+        and all(_is_number(n) for n in value)
+    )
 
 
-def _is_number(value: Any) -> bool:
+def _is_number(value: Any, level: Optional[int] = None) -> bool:
     """Test for a numerical value."""
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    valid = isinstance(value, (int, float)) and not isinstance(value, bool)
+    if level is not None and not valid:
+        warnings.warn(f"Invalid segment radius: '{value}'", stacklevel=level)
+    return valid

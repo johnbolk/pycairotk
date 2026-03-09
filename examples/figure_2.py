@@ -43,7 +43,7 @@ class Figure2(tk.Frame):
         arrow_length = 3 * max(6.0, 4 * brush.width)
         arrow_angle = 90 + angle - math.degrees(0.5 * arrow_length / radius)
         arrow_base = self._draw.arrow(brush, 0.4 * vector, arrow_angle)
-        self._draw.arc_segment(brush, radius, (radius, 0), arrow_base)
+        self._draw.arc(brush, radius, (radius, 0), arrow_base)
         font = Font(height=14, bold=True)
         label_position = Vector.from_polar_coords(radius + 10, angle / 2)
         self._draw.label(TextStyle(font), label_position, f'+ {angle} degrees')
@@ -79,7 +79,7 @@ class Figure2(tk.Frame):
             if i != 0:
                 x_pos = i * scale
                 self._draw.line(pen, (x_pos, 0), (x_pos, -10))
-                x_pos -= 5 * len(str(i))
+                x_pos -= 0.5 + 5 * len(str(i))
                 self._draw.label(text_style, (x_pos, -20), str(i))
 
         self._draw.label(TextStyle(Font(height=20)), (-30, 330), 'Y-Axis')
@@ -89,7 +89,7 @@ class Figure2(tk.Frame):
             if i != 0:
                 y_pos = i * scale
                 self._draw.line(pen, (0, y_pos), (-10, y_pos))
-                self._draw.label(text_style, (-13, y_pos + 1), str(i))
+                self._draw.label(text_style, (-13, y_pos), str(i))
 
 
 # Execute the script

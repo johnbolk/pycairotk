@@ -10,7 +10,7 @@ rgba color - opacity channel
 
 PyOpenGL - measures angles in degrees. Angles increase in the counter-clockwise direction.
 
-Unlike either the Tkinter Canvas widget or the pycairo package, the DrawArea widget class operates in a standard, right-handed coordinate system, where the y-axis values increase from the bottom the top of the display.  This is illustrated in Figure 1.
+Unlike either the Tkinter Canvas widget or the pycairo package, the **DrawArea** widget class operates in a standard, right-handed coordinate system. This means that the y-axis values increase from the bottom of the display to the top of the display. This is illustrated in Figure 1.
 
 ![Figure 1](./examples/images/figure_1.png)
 
@@ -37,13 +37,18 @@ This package provides the following class definitions **:**
 * **LineCap -** An enumerated class of available line endpoint options
 * **LineJoin -** An enumerated class of available line junction options
 * **Antialias -** An enumerated class of available rendering options
+* **Size -** A named tuple class of the width and height dimensions of an object
 * **Vector -** A class which represents a geometric vector in the xy plane
 
 Add words here ...
 
 <div class="page"/>
 
+## Parameter Information
+
 ### Color Parameters
+
+The **Brush** and **TextStyle** classes allow the user to specify the color that is used by the **DrawArea** graphics and text rendering methods. Unlike pycairo, where the color is specified by its individual component values, the pycairotk package allows the user to specify the color in a wide variety of forms and formats.
 
 A color parameter value can be provided in one of the following forms **:**
 
@@ -51,19 +56,30 @@ A color parameter value can be provided in one of the following forms **:**
 * It can be expressed as a 6-digit hexadecimal notation color string **'#rrggbb'**
 * It can be expressed as a 8-digit hexadecimal notation color string **'#rrggbbaa'**
 * It can be expressed as a tuple color value **( red, green, blue [, alpha] )** that conforms to one of these formats **:**
-    * 3 or 4 integer color components ranging in value from 0 to 255
-    * 3 or 4 floating point color components ranging in value from 0.0 to 1.0
+    * 3 or 4 integer color components, each ranging in value from 0 to 255
+    * 3 or 4 floating point color components, each ranging in value from 0.0 to 1.0
 
-### Coordinates Parameters
+### Location Parameters
 
-A coordinates parameter value can be provided in one of the following two forms **:**
+All the **DrawArea** graphics and text rendering methods require the user to specify either one or two locations. All locations are given in units of pixels. A location value consists of an ordered pair of numbers, namely the **x-coordinate value** and the **y-coordinate value.**, with the **y-coordinate value** increasing from the bottom of the display to the top of the display (a right-handed coordinate system).
 
-* It can be expressed as a **Vector** value
+A location parameter value can be provided in one of the following forms **:**
+
 * It can be expressed as a two element tuple **( x-coordinate, y-coordinate )**
+* It can be expressed as a **Vector** value
 
-The ability to to use vectors ...
+### Size Parameters
 
-![Figure 2](./examples/images/figure_2.png)
+Both the **ellipse** and **rectangle** graphics rendering methods require the user to specify the dimensions (or size) of the rendered object. The dimensions are given in units of pixels.
+
+A size parameter value can be provided in one of the following forms **:**
+
+* It can be expressed as a two element tuple **( width, height )**
+* It can be expressed as a **Size** value
+
+### Angle Parameters
+
+The **Vector** class, the **TextStyle** class, and several of the **DrawArea** graphics rendering methods all involve the use of angle values, with the angle given in units of degrees. The angle value increases in the counter-clockwise direction, which conforms with the **DrawArea** rendering methods operating in a standard, right-handed coordinate system.
 
 <div class="page"/>
 
@@ -81,7 +97,7 @@ Constructs and initializes the graphics drawing area.
 
 * ***height* : int -** The height of the graphics drawing area (in pixels).
 
-* ***antialias* : Antialias | optional -** The type of antialiasing used for rendering text or shapes. **defaults to Antialias.DEFAULT**
+* ***antialias* : Antialias, optional -** The type of antialiasing used for rendering text or shapes. **defaults to Antialias.DEFAULT**
 
 By default, the **border_style** property is set to **BorderStyle.Flat**, and the **origin (0, 0)** is located in the lower-left corner.
 
@@ -113,15 +129,7 @@ By default, the **border_style** property is set to **BorderStyle.Flat**, and th
 
 <div class="page"/>
 
-* **arc( *brush, center, radius, start, end* ) -** Draw an arc of given radius from the start angle to the end angle.
-
-    * ***brush* : Brush -** The specified graphics rendering options.
-    * ***center* : Vector | tuple -** The center location coordinates of the arc (in pixels).
-    * ***radius* : float -** The arc radius (in pixels), negative denotes a clockwise direction.
-    * ***start* : float -** The start angle (measured in degrees).
-    * ***end* : float -** The end angle (measured in degrees).
-
-* **arc_segment( *brush, radius, start, end* ) -** Draw a circular arc segment from the start point to the end point.
+* **arc( *brush, radius, start, end* ) -** Draw a circular arc segment from the start point to the end point.
 
     * ***brush* : Brush -** The specified graphics rendering options.
     * ***radius* : float -**  : The arc radius (in pixels), negative denotes a clockwise direction.
@@ -144,41 +152,14 @@ By default, the **border_style** property is set to **BorderStyle.Flat**, and th
 
     * ***brush* : Brush -** The specified graphics rendering options.
     * ***center* : Vector | tuple -** The center location coordinates (in pixels).
-    * ***shape* : Shape | optional -** The specified datapoint shape. **defaults to Shape.CIRCLE**
+    * ***shape* : Shape, optional -** The specified datapoint shape. **defaults to Shape.CIRCLE**
 
 * **ellipse( *brush, center, size [, angle]* ) -** Draw an ellipse of given dimensions, centered on the given location.
 
     * ***brush* : Brush -** The specified graphics rendering options.
     * ***center* : Vector | tuple -** The center location coordinates (in pixels).
-    * ***size* : tuple -** The width and height dimensions of the ellipse (in pixels).
-    * ***angle* : float | optional -** The rotation angle of the ellipse (measured in degrees). **defaults to 0.0**
-
-<div class="page"/>
-
-* **line( *brush, start, end* ) -** Draw a straight line segment from the start point to the end point.
-
-    * ***brush* : Brush -** The specified graphics rendering options.
-    * ***start* : Vector | tuple -** The start point coordinates (in pixels).
-    * ***end* : Vector | tuple -** The end point coordinate (in pixels).
-
-* **polygon( *brush, coords, segments* ) -** Draw an enclosed region as defined by the coordinates and segments.
-
-    * ***brush* : Brush -** The specified graphics rendering options.
-    * ***coords* : list[Vector] | list[tuple] -** The list of the coordinates that define the polygon.
-    * ***segments* : list[float] | optional -** The list of segment radii. **defaults to straight line segments**
-
-* **rectangle( *brush, start, size* ) -** Draw a rectangle with the given dimensions at the starting location.
-
-    * ***brush* : Brush -** The specified graphics rendering options.
-    * ***start* : Vector | tuple -** The starting location coordinates (in pixels).
-    * ***size* : tuple -** The width and height dimensions of the rectangle (in pixels).
-
-* **square( *brush, center, side [, angle]* ) -** Draw a square of given side length, centered on the given location.
-
-    * ***brush* : Brush -** The specified graphics rendering options.
-    * ***center* : Vector | tuple -** The center location coordinates (in pixels).
-    * ***side* : float -** The side length of the square (in pixels).
-    * ***angle* : float | optional -** The rotation angle of the square (measured in degrees). **defaults to 0.0**
+    * ***size* : Size | tuple -** The width and height dimensions of the ellipse (in pixels).
+    * ***angle* : float, optional -** The rotation angle of the ellipse (measured in degrees). **defaults to 0.0**
 
 * **label( *style, start, text* ) -** Draw a text label at the starting location. This method returns the dimensions of the rendered text string (in pixels).
 
@@ -186,9 +167,46 @@ By default, the **border_style** property is set to **BorderStyle.Flat**, and th
     * ***start* : Vector | tuple -** The starting location coordinates (in pixels).
     * ***text* : str -** The text string to display
 
+* **line( *brush, start, end* ) -** Draw a straight line segment from the start point to the end point.
+
+    * ***brush* : Brush -** The specified graphics rendering options.
+    * ***start* : Vector | tuple -** The start point coordinates (in pixels).
+    * ***end* : Vector | tuple -** The end point coordinate (in pixels).
+
+<div class="page"/>
+
+* **polygon( *brush, coords, segments* ) -** Draw an enclosed region as defined by the coordinates and segments.
+
+    * ***brush* : Brush -** The specified graphics rendering options.
+    * ***coords* : list[Vector] | list[tuple] -** The list of the coordinates that define the polygon.
+    * ***segments* : list[int] | list[float], optional -** The list of segment radii. **defaults to straight line segments**
+
+    The polygon's perimeter path endpoint is always joined to **coords[0].**
+
+    By default, the segments parameter is set to **None**, which results in a perimeter path composed of all line segments. When the segments parameter is set to a list of radii values, each radius value is rendered as follows:
+
+    * A radius value > 0 draws a counter-clockwise circular arc segment.
+    * A radius value < 0 draws a clockwise circular arc segment.
+    * A radius value == 0 draws a line segment.
+
+    **Important :** When not **None**, the number of segments must equal the number of coordinates.
+
+* **rectangle( *brush, start, size* ) -** Draw a rectangle with the given dimensions at the starting location.
+
+    * ***brush* : Brush -** The specified graphics rendering options.
+    * ***start* : Vector | tuple -** The starting location coordinates (in pixels).
+    * ***size* : Size | tuple -** The width and height dimensions of the rectangle (in pixels).
+
+* **square( *brush, center, side [, angle]* ) -** Draw a square of given side length, centered on the given location.
+
+    * ***brush* : Brush -** The specified graphics rendering options.
+    * ***center* : Vector | tuple -** The center location coordinates (in pixels).
+    * ***side* : float -** The side length of the square (in pixels).
+    * ***angle* : float, optional -** The rotation angle of the square (measured in degrees). **defaults to 0.0**
+
 ### User Notes
 
-The DrawArea widget is derived from the Tkinter Label widget. This means that the DrawArea inherits all of the Universal Tkinter widget methods, and that all of these methods are available to the user. This also means that all of the Label widget's options are exposed to the user. To avoid the possibility of creating any unpredictable DrawArea behavior, the user should never directly modify the values of the underlying Label widget's options. The one exception to this "hands-off rule" is that the user can safely modify the widget's **'state'** value.
+The **DrawArea** widget is derived from the Tkinter Label widget. This means that the **DrawArea** inherits all of the Universal Tkinter widget methods, and that all of these methods are available to the user. This also means that all of the Label widget's options are exposed to the user. To avoid the possibility of creating any unpredictable **DrawArea** behavior, the user should never directly modify the values of the underlying Label widget's options. The one exception to this "hands-off rule" is that the user can safely modify the widget's **'state'** value.
 
 <div class="page"/>
 
@@ -248,26 +266,26 @@ The DrawArea widget is derived from the Tkinter Label widget. This means that th
 
 ### Attributes
 
-* **width : float | optional -** The width of the displayed line segment or the datapoint size. **defaults to 1.0**
+* **width : float, optional -** The displayed line/arc segment width or the datapoint size. **defaults to 1.0**
 
-* **color : str | tuple | optional -** The color of a line segment, perimeter, or the solid fill color. **defaults to 'black'**
+* **color : str | tuple, optional -** The line/arc segment, perimeter, or the solid fill color. **defaults to 'black'**
 
-* **fill : bool | optional -** A True value will fill the defined region with solid color. **defaults to False**
+* **fill : bool, optional -** If True, the polygon is filled with solid color. **defaults to False**
 
-* **edge : str | tuple | optional -** The color of the solid filled region's perimeter. **defaults to ' '**
+* **edge : str | tuple, optional -** The perimeter color of the solid filled polygon. **defaults to no color**
 
-* **dash : list | tuple | optional -** The dash pattern of the line segment. **defaults to ( )**
+* **dash : list | tuple, optional -** The dash pattern of the line/arc segment. **defaults to a solid line**
 
-* **line_cap : LineCap | optional -** The shape of a line segment's endpoints. **defaults to LineCap.BUTT**
+* **line_cap : LineCap, optional -** The shape of a line/arc segment's endpoints. **defaults to LineCap.BUTT**
 
-* **line_join : LineJoin | optional -** The defined region's perimeter joining style. **defaults to LineJoin.MITER**
+* **line_join : LineJoin, optional -** The polygon's perimeter joining style. **defaults to LineJoin.MITER**
 
 ### Methods
 
-* **copy( *[width] [, color]* ) -** Returns a deep copy of the brush.
-
-    * ***width* : float | optional -** The new width of the copied brush. **defaults to the current width**
-    * ***color* : str | tuple | optional -** The new color of the copied brush. **defaults to the current color**
+* **copy( *[width] [, color] [, fill]* ) -** Returns a deep copy of the brush with optional new width, color, and/or fill values.
+    * ***width* : float, optional -** The new width assigned to the copy. **defaults to the current width**
+    * ***color* : str | tuple, optional -** The new color assigned to the copy. **defaults to the current color**
+    * ***fill* : bool, optional -** The new fill value assigned to the copy. **defaults to the current fill**
 
 ## LineCap
 
@@ -299,13 +317,13 @@ The DrawArea widget is derived from the Tkinter Label widget. This means that th
 
 ### Attributes
 
-* **family : str | optional -** The font family name as a string. **defaults to 'Arial'**
+* **family : str, optional -** The font family name as a string. **defaults to 'Arial'**
 
-* **height : float | optional -** The font height (in pixels). **defaults to 12.0**
+* **height : float, optional -** The font height (in pixels). **defaults to 12.0**
 
-* **bold : bool | optional -** Boldface text if True, otherwise normal text. **defaults to False**
+* **bold : bool, optional -** Boldface text if True, otherwise normal text. **defaults to False**
 
-* **italic : bool | optional -** Italic text if True, otherwise upright text. **defaults to False**
+* **italic : bool, optional -** Italic text if True, otherwise upright text. **defaults to False**
 
 ## TextStyle
 
@@ -315,15 +333,31 @@ The DrawArea widget is derived from the Tkinter Label widget. This means that th
 
 ### Attributes
 
-* **font : Font | optional -** The font of the displayed text. **defaults to Font()**
+* **font : Font, optional -** The font of the displayed text. **defaults to Font()**
 
-* **color : str | tuple | optional -** The color of the displayed text. **defaults to 'black'**
+* **color : str | tuple, optional -** The color of the displayed text. **defaults to 'black'**
 
-* **anchor : str | optional -** The anchor point of the displayed text. **defaults to tk.LEFT**
+* **anchor : str, optional -** The anchor point of the displayed text. **defaults to tk.LEFT**
 
-* **angle : float | optional -** The orientation angle of the displayed text (measured in degrees). **defaults to 0.0**
+* **angle : float, optional -** The orientation angle of the displayed text (measured in degrees). **defaults to 0.0**
 
-* **border : float | optional -** A positive value displays outlined text. **defaults to -1.0**
+* **border : float, optional -** A positive value displays outlined text. **defaults to -1.0**
+
+## Size
+
+**A named tuple class which provides the width and height dimensions of an object.**
+
+### Size( *width, height* )
+
+Constructs the named tuple class from the object's x-axis and y-axis dimensions.
+
+* ***width* : float -** The x-axis dimension of the object.
+* ***height* : float -** The y-axis dimension of the object.
+
+### Properties
+
+* **width : float -** The x-axis dimension of the object. ( readonly )
+* **height : float -** The y-axis dimension of the object. ( readonly )
 
 <div class="page"/>
 
@@ -333,10 +367,9 @@ The DrawArea widget is derived from the Tkinter Label widget. This means that th
 
 ### Vector( *x, y* )
 
-Constructs a new Vector from the x-axis & y-axis vector components.
+Constructs a new Vector from the x-axis and y-axis vector components.
 
 * ***x* : float -** The x-axis component of the vector.
-
 * ***y* : float -** The y-axis component of the vector.
 
 ### Vector.from_polar_coords( *length, angle* )
@@ -344,28 +377,33 @@ Constructs a new Vector from the x-axis & y-axis vector components.
 Constructs a new Vector using polar coordinate values.
 
 * ***length* : float -** The length (or magnitude) of the vector.
-
 * ***angle* : float -** The angle (or direction) of the vector w.r.t. the x-axis (measured in degrees).
+
+```
+    # Create a position vector using polar coordinate values
+    vector = Vector.from_polar_coords(7, 30)
+    print(f'({vector.x :0.2f}, {vector.y :0.2f})')  # Output: (6.06, 3.50)
+```
+The resulting position vector is illustrated in Figure 2.
+
+![Figure 2](./examples/images/figure_2.png)
+
+<div class="page"/>
 
 ### Attributes
 
 * **x : float -** The x-axis component of the vector. ( read / write )
-
 * **y : float -** The x-axis component of the vector. ( read / write )
 
 ### Properties
 
 * **length : float -** The magnitude (or length) of the vector. ( readonly )
-
 * **angle : float -** The direction (or angle) of the vector w.r.t. the x-axis (measured in degrees). ( readonly )
 
 ### Methods
 
 * **rotated( *angle* ) -** Returns a copy of the vector rotated by the specified angle.
-
     * **angle : float -** The specified rotation angle (measured in degrees).
-
-<div class="page"/>
 
 ### Operators
 
@@ -400,14 +438,14 @@ The following operations are supported by the Vector class :
     vector_a /= scalar
 ```
 
+<div class="page"/>
+
 * **Unary Plus & Unary Minus :**
 
 ```
     vector_b = +vector_a
     vector_b = -vector_a
 ```
-
-<div class="page"/>
 
 * **Checking Equality :**
 
@@ -456,7 +494,7 @@ The following operations are supported by the Vector class :
 
 ```
 import tkinter as tk
-from pycairotk import DrawArea, Brush, Vector
+from pycairotk import DrawArea, Brush, Font, TextStyle, Vector
 
 
 class DemoWindow(tk.Frame):
@@ -472,14 +510,19 @@ class DemoWindow(tk.Frame):
 
         # Draw a simple pie-chart
         radius = 150
-        colors = ('red', 'yellow', 'skyblue')
+        color_names = ('red', 'yellow', 'skyblue')
+        inc = 360 / len(color_names)
+        line = Vector(0, radius)
+        middle = 0.6 * line.rotated(inc / 2)
         brush = Brush(2, fill=True, edge='black')
-        line = Vector.from_polar_coords(radius, 90)
+        text_style = TextStyle(Font(height=20, bold=True), anchor=tk.CENTER)
         self._draw.origin = (self._draw.width / 2, self._draw.height / 2)
-        for i, color in enumerate(colors):
-            pnts = [(0, 0), line.rotated(i * 120), line.rotated((i + 1) * 120)]
-            segments = [0, radius, 0]  # segments = [straight, arc, straight]
+        for i, color in enumerate(color_names):
+            pnts = [(0, 0), line.rotated(i * inc), line.rotated((i + 1) * inc)]
+            segments = [0, radius, 0]  # segments = [line, arc, line]
             self._draw.polygon(brush.copy(color=color), pnts, segments)
+            self._draw.label(text_style, middle.rotated(i * inc), color)
+
         self._draw.display()  # This should always be the last statement
 
 

@@ -41,7 +41,7 @@ class Figure1(tk.Frame):
             if i != 0:
                 x_pos = i * scale
                 self._draw.line(pen, (x_pos, 0), (x_pos, -10))
-                x_pos -= 5 * len(str(i))
+                x_pos -= 0.5 + 5 * len(str(i))
                 self._draw.label(text_style, (x_pos, -20), str(i))
 
         self._draw.label(TextStyle(Font(height=20)), (-30, 330), 'Y-Axis')
@@ -51,7 +51,7 @@ class Figure1(tk.Frame):
             if i != 0:
                 y_pos = i * scale
                 self._draw.line(pen, (0, y_pos), (-10, y_pos))
-                self._draw.label(text_style, (-13, y_pos + 1), str(i))
+                self._draw.label(text_style, (-13, y_pos), str(i))
 
         self._draw.display()  # This should always be the last statement
 

@@ -1,7 +1,7 @@
-"""demo.py - A script for demonstrating the use of vectors and segments."""
+"""py_chart.py - A demonstration script which uses vectors and segments."""
 
 import tkinter as tk
-from pycairotk import DrawArea, Brush, Vector
+from pycairotk import DrawArea, Brush, Font, TextStyle, Vector
 
 
 class DemoWindow(tk.Frame):
@@ -17,14 +17,19 @@ class DemoWindow(tk.Frame):
 
         # Draw a simple pie-chart
         radius = 150
-        colors = ('red', 'yellow', 'skyblue')
+        color_names = ('red', 'yellow', 'skyblue')
+        inc = 360 / len(color_names)
+        line = Vector(0, radius)
+        middle = 0.6 * line.rotated(inc / 2)
         brush = Brush(2, fill=True, edge='black')
-        line = Vector.from_polar_coords(radius, 90)
+        text_style = TextStyle(Font(height=20, bold=True), anchor=tk.CENTER)
         self._draw.origin = (self._draw.width / 2, self._draw.height / 2)
-        for i, color in enumerate(colors):
-            pnts = [(0, 0), line.rotated(i * 120), line.rotated((i + 1) * 120)]
-            segments = [0, radius, 0]  # segments = [straight, arc, straight]
+        for i, color in enumerate(color_names):
+            pnts = [(0, 0), line.rotated(i * inc), line.rotated((i + 1) * inc)]
+            segments = [0, radius, 0]  # segments = [line, arc, line]
             self._draw.polygon(brush.copy(color=color), pnts, segments)
+            self._draw.label(text_style, middle.rotated(i * inc), color)
+
         self._draw.display()  # This should always be the last statement
 
 

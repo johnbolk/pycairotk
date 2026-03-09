@@ -15,14 +15,15 @@ This package provides the following class and function definitions:
 * LineCap     - An enumerated class of available line endpoint options
 * LineJoin    - An enumerated class of available line junction options
 * Antialias   - An enumerated class of available rendering options
+* Size        - A named tuple of the width and height dimensions of an
 * Vector      - A class which represents a geometric vector in the xy plane
 
 * Color       - A data class of commonly used drawing colors
 * rgba_color  - Generates a floating point RGBA color from integer values
 """
 
-__version__ = '1.4.5'
+__version__ = '1.4.6'
 
 from cairo import LineCap, LineJoin, Antialias
-from .pycairotk import DrawArea, BorderStyle, Brush, Font, TextStyle, Shape, Vector
+from .pycairotk import DrawArea, BorderStyle, Brush, Font, TextStyle, Shape, Size, Vector
 from .pycolor import Color, rgba_color
