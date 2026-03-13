@@ -16,8 +16,8 @@ class Clock(tk.Frame):
         self.grid()
 
         # Dimension and position the clock window
-        self.clock_radius = 280
-        clock_center = self.clock_radius + 20
+        self._clock_radius = 280
+        clock_center = self._clock_radius + 20
         self._clock = DrawArea(self, 2 * clock_center, 2 * clock_center)
         self._clock.set_background('green')
         self._clock.origin = (clock_center, clock_center)
@@ -29,7 +29,7 @@ class Clock(tk.Frame):
         # Initialize and start the clock
         self._tick = -360 / 60
         self._hour = self._tick * 5
-        self._noon_start = Vector.from_polar_coords(self.clock_radius, 90)
+        self._noon_start = Vector.from_polar_coords(self._clock_radius, 90)
         self._update()
 
     def _update(self):
@@ -51,8 +51,8 @@ class Clock(tk.Frame):
     def _draw_face(self):
         """Draw the face."""
         brush = Brush(5, 'white', True, 'black')
-        self._clock.circle(brush, (0, 0), self.clock_radius + 3)
-        self._clock.circle(Brush(3), (0, 0), 0.95 * self.clock_radius)
+        self._clock.circle(brush, (0, 0), self._clock_radius + 3)
+        self._clock.circle(Brush(3), (0, 0), 0.95 * self._clock_radius)
 
         # Draw the tick marks
         brush = Brush(line_cap=LineCap.ROUND)
@@ -67,7 +67,7 @@ class Clock(tk.Frame):
         font = Font('Times', 65, True)
         style = TextStyle(font, 'black', tk.CENTER, border_width=4)
         length = [0.77, 0.79, 0.80, 0.78, 0.78, 0.77,
-                  0.77, 0.78, 0.79, 0.74, 0.76, 0.78]
+                  0.77, 0.78, 0.79, 0.74, 0.76, 0.77]
         for i in range(1, 13):
             position = length[i - 1] * self._noon_start.rotated(i * self._hour)
             self._clock.label(style, position, str(i))
@@ -84,18 +84,11 @@ class Clock(tk.Frame):
         tail = -head * (0.4 if brush.fill else 0.3) + center
         if brush.fill:  # Draw the minute and hour hands
             base = Vector.from_polar_coords(3, head.angle + 90)
-            size = brush.width * base / 3
-            body = 0.7 * head
-            hand = [
-                center - base,
-                body - size,
-                head,
-                body + size,
-                center + base,
-                tail + size,
-                0.9 * tail,
-                tail - size,
-            ]
+            side = brush.width * base / 3
+            body = 0.75 * head
+            dent = 0.95 * tail
+            hand = [center - base, body - side, head, body + side,
+                    center + base, tail + side, dent, tail - side]
             self._clock.polygon(brush, hand)
         else:  # Draw the second hand with a circular loop on the tail
             radius = 10

@@ -17,7 +17,7 @@ class DemoWindow(tk.Frame):
 
         # Draw a simple pie-chart
         radius = 150
-        color_names = ('red', 'yellow', 'skyblue')
+        color_names = ['red', 'yellow', 'skyblue']
         inc = 360 / len(color_names)
         line = Vector(0, radius)
         middle = 0.6 * line.rotated(inc / 2)

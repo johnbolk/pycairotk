@@ -2,33 +2,23 @@
 
 **A Tkinter DrawArea wrapper class for the pycairo package.**
 
-Add words here ...
+This package provides an alternative to the Tkinter Canvas widget for rendering and displaying graphics objects. The **DrawArea** widget is a high-level wrapper class for the **pycairo** package, which implements many of that package's graphics and text rendering capabilities. One of these is the ability to generate sub-pixel graphics resolution by using the anti-aliasing capabilities. Another is the ability to render text and graphics while using full 32-bit, RGBA colors.
 
-anti-aliasing
-
-rgba color - opacity channel
-
-PyOpenGL - measures angles in degrees. Angles increase in the counter-clockwise direction.
-
-Unlike either the Tkinter Canvas widget or the pycairo package, the **DrawArea** widget class operates in a standard, right-handed coordinate system. This means that the y-axis values increase from the bottom of the display to the top of the display. This is illustrated in Figure 1.
+An important difference from either the Tkinter Canvas widget or the **pycairo** package, is that the **DrawArea** widget class was defined to operate in a standard, right-handed coordinate system. This means that the y-axis coordinate value increases from the bottom of the display to the top of the display. This is illustrated in Figure 1.
 
 ![Figure 1](./examples/images/figure_1.png)
 
-This package adds a fully compatible **DrawArea** widget to Tkinter's set of graphical user interface widgets, thereby providing the user with a convenient tool for working with the pycairo package in any Tkinter window based application.
+In addition to the **DrawArea** widget, this package also includes a fully defined **Vector** class. This class represents a geometric vector in the xy plane, and it is an extremely useful and powerful tool for creating and manipulating graphic objects. In fact, the **DrawArea** widget was implemented using the **Vector** class.
+
+In summary, this package adds a fully compatible **DrawArea** widget to Tkinter's set of graphical user interface widgets, thereby providing the user with a convenient tool for working with the **pycairo** package in any Tkinter window based application.
 
 <div class="page"/>
-
-# Installation
-
-```
-pip install pycairotk
-```
 
 # Overview
 
 This package provides the following class definitions **:**
 
-* **DrawArea -** A Tkinter widget class for displaying an OpenCV image
+* **DrawArea -** A Tkinter widget class for rendering and displaying graphics
 * **BorderStyle -** A data class of the available border style options
 * **Brush -** A data class of graphics rendering options
 * **Font -** A data class for describing a text font
@@ -40,7 +30,19 @@ This package provides the following class definitions **:**
 * **Size -** A named tuple class of the width and height dimensions of an object
 * **Vector -** A class which represents a geometric vector in the xy plane
 
-Add words here ...
+The **DrawArea** widget class provides the rectangular area where the graphics and text objects are rendered and displayed on the screen.
+
+The **Antialias** and **BorderStyle** classes provide configuration and display options for the **DrawArea** widget class.
+
+The **Brush** and **Shape** classes are used to provide rendering options for the various **DrawArea** graphics rendering methods.
+
+The **LineCap** and **LineJoin** classes are used provide line rendering options for the **Brush** class.
+
+The **Font** and **TextStyle** classes are used to provide rendering options for the **DrawArea.label** text rendering method.
+
+The **Size** and **Vector** classes not are required for using the **DrawArea** rendering methods, but they are provided as "helper" classes for the user. The **Size** class can be a useful way to provide the dimensions of a graphics object, and the **Vector** class can be an extremely useful way of providing the location coordinates of graphic objects.
+
+Full descriptions for all of these classes are provided later in the **Documentation** section.
 
 <div class="page"/>
 
@@ -48,14 +50,14 @@ Add words here ...
 
 ### Color Parameters
 
-The **Brush** and **TextStyle** classes allow the user to specify the color that is used by the **DrawArea** graphics and text rendering methods. Unlike pycairo, where the color is specified by its individual component values, the pycairotk package allows the user to specify the color in a wide variety of forms and formats.
+The **Brush** and **TextStyle** classes allow the user to specify the color that is used by the **DrawArea** graphics and text rendering methods, and the **pycairotk** package allows the color to be specified in a wide variety of forms and formats. When the color's alpha (or opacity) component is not specified, it is automatically set to its maximum value.
 
 A color parameter value can be provided in one of the following forms **:**
 
 * It can be expressed as a named color string, e.g. **'white'**. A defined set of named colors can be found at **:** [CSS Color 4: Named Colors](https://drafts.csswg.org/css-color-4/#named-colors)
 * It can be expressed as a 6-digit hexadecimal notation color string **'#rrggbb'**
 * It can be expressed as a 8-digit hexadecimal notation color string **'#rrggbbaa'**
-* It can be expressed as a tuple color value **( red, green, blue [, alpha] )** that conforms to one of these formats **:**
+* It can be expressed as a tuple color value **( red, green, blue [, alpha] )** in one of these formats **:**
     * 3 or 4 integer color components, each ranging in value from 0 to 255
     * 3 or 4 floating point color components, each ranging in value from 0.0 to 1.0
 
@@ -79,7 +81,7 @@ A size parameter value can be provided in one of the following forms **:**
 
 ### Angle Parameters
 
-The **Vector** class, the **TextStyle** class, and several of the **DrawArea** graphics rendering methods all involve the use of angle values, with the angle given in units of degrees. The angle value increases in the counter-clockwise direction, which conforms with the **DrawArea** rendering methods operating in a standard, right-handed coordinate system.
+The **Vector** class, the **TextStyle** class, and several of the **DrawArea** graphics rendering methods all involve the use of angle values. The angle value is measured with respect to the x-axis and expressed in units of degrees. The angle value increases in the counter-clockwise direction, which conforms with the **DrawArea** rendering methods operating in a standard, right-handed coordinate system.
 
 <div class="page"/>
 
@@ -115,15 +117,15 @@ By default, the **border_style** property is set to **BorderStyle.Flat**, and th
 
 ### Methods
 
-* **clear() -** Clear all graphics objects from the drawing area.
+* **clear() -** Clear all the graphics objects from the drawing area.
 
-* **display() -** Display all the currently defined graphics objects.
+* **display() -** Display all of the drawing area's currently defined graphics objects to the screen. This method must be called at the end of the graphics rendering section of the user's program.
 
 * **save( *filename* ) -** Save the currently displayed graphics image to a file.  This method returns **True** if the image was successfully saved, **False** otherwise.
 
     * ***filename* : str -** The full filename of the image file.
 
-* **set_background( *color* ) -** Set the background color of the DrawArea.
+* **set_background( *color* ) -** Set the background color of the **DrawArea.**
 
     * ***color* : str | tuple -** The specified background color (the alpha component is ignored).
 
@@ -492,6 +494,8 @@ The following operations are supported by the Vector class :
 
 # Pycairotk Example
 
+This example creates a Tkinter based window application that uses the **DrawArea** widget and the **Vector** class to render and display a simple pie-chart. The number of chart sections is determined by the number of colors that are in the **color_names** list.
+
 ```
 import tkinter as tk
 from pycairotk import DrawArea, Brush, Font, TextStyle, Vector
@@ -510,7 +514,7 @@ class DemoWindow(tk.Frame):
 
         # Draw a simple pie-chart
         radius = 150
-        color_names = ('red', 'yellow', 'skyblue')
+        color_names = ['red', 'yellow', 'skyblue']
         inc = 360 / len(color_names)
         line = Vector(0, radius)
         middle = 0.6 * line.rotated(inc / 2)
