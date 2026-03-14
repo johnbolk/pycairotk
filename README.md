@@ -2,7 +2,7 @@
 
 **A Tkinter DrawArea wrapper class for the pycairo package.**
 
-This package provides an alternative to the Tkinter Canvas widget for rendering and displaying graphics objects. The **DrawArea** widget is a high-level wrapper class for the **pycairo** package, which implements many of that package's graphics and text rendering capabilities. One of these is the ability to generate sub-pixel graphics resolution by using the anti-aliasing capabilities. Another is the ability to render text and graphics while using full 32-bit, RGBA colors.
+This package provides an alternative to the Tkinter Canvas widget for rendering and displaying graphics objects. The **DrawArea** widget is a high-level wrapper class for the **pycairo** package, which implements many of that package's graphics and text rendering capabilities. One of these is the ability to generate sub-pixel graphics resolution by using the anti-aliasing capabilities. Another is the ability to render text and graphics using full 32-bit, RGBA colors.
 
 An important difference from either the Tkinter Canvas widget or the **pycairo** package, is that the **DrawArea** widget class was defined to operate in a standard, right-handed coordinate system. This means that the y-axis coordinate value increases from the bottom of the display to the top of the display. This is illustrated in Figure 1.
 
@@ -13,6 +13,12 @@ In addition to the **DrawArea** widget, this package also includes a fully defin
 In summary, this package adds a fully compatible **DrawArea** widget to Tkinter's set of graphical user interface widgets, thereby providing the user with a convenient tool for working with the **pycairo** package in any Tkinter window based application.
 
 <div class="page"/>
+
+# Installation
+
+```
+pip install pycairotk
+```
 
 # Overview
 
@@ -32,15 +38,15 @@ This package provides the following class definitions **:**
 
 The **DrawArea** widget class provides the rectangular area where the graphics and text objects are rendered and displayed on the screen.
 
-The **Antialias** and **BorderStyle** classes provide configuration and display options for the **DrawArea** widget class.
+The **Antialias** and **BorderStyle** classes are used to specify the configuration and display options for the **DrawArea** widget class.
 
-The **Brush** and **Shape** classes are used to provide rendering options for the various **DrawArea** graphics rendering methods.
+The **Brush** and **Shape** classes are used to specify the rendering options for the various **DrawArea** graphics rendering methods.
 
-The **LineCap** and **LineJoin** classes are used provide line rendering options for the **Brush** class.
+The **LineCap** and **LineJoin** classes are used to specify the line rendering options for the **Brush** class.
 
-The **Font** and **TextStyle** classes are used to provide rendering options for the **DrawArea.label** text rendering method.
+The **Font** and **TextStyle** classes are used to specify the rendering options for the **DrawArea** text rendering method.
 
-The **Size** and **Vector** classes not are required for using the **DrawArea** rendering methods, but they are provided as "helper" classes for the user. The **Size** class can be a useful way to provide the dimensions of a graphics object, and the **Vector** class can be an extremely useful way of providing the location coordinates of graphic objects.
+The **Size** and **Vector** classes not are required for using the **DrawArea** rendering methods, but are provided as "helper" classes for the user. The **Size** class is a useful way to specify the dimensions of a graphics object, and the **Vector** class is a very useful tool for specifying and manipulating the location coordinates of graphic objects.
 
 Full descriptions for all of these classes are provided later in the **Documentation** section.
 
@@ -494,7 +500,7 @@ The following operations are supported by the Vector class :
 
 # Pycairotk Example
 
-This example creates a Tkinter based window application that uses the **DrawArea** widget and the **Vector** class to render and display a simple pie-chart. The number of chart sections is determined by the number of colors that are in the **color_names** list.
+This example creates a Tkinter based window application that uses the **DrawArea** widget and the **Vector** class to render and display a simple pie-chart. The number of chart sections is determined by the number of colors in the **color_names** list.
 
 ```
 import tkinter as tk

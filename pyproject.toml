@@ -22,4 +22,4 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/johnbolk/pycairotk.git"
+Homepage = "https://github.com/johnbolk/pycairotk"
