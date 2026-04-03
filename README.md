@@ -186,8 +186,8 @@ By default, the **border_style** property is set to **BorderStyle.Flat**, and th
 * **polygon( *brush, coords, segments* ) -** Draw an enclosed region as defined by the coordinates and segments.
 
     * ***brush* : Brush -** The specified graphics rendering options.
-    * ***coords* : list[Vector] | list[tuple] -** The list of the coordinates that define the polygon.
-    * ***segments* : list[int] | list[float], optional -** The list of segment radii. **defaults to straight line segments**
+    * ***coords* : Sequence[Vector | tuple] -** The list of the coordinates that define the polygon.
+    * ***segments* : Sequence[int | float], optional -** The list of segment radii. **defaults to straight line segments**
 
     The polygon's perimeter path endpoint is always joined to **coords[0].**
 
@@ -291,9 +291,9 @@ The **DrawArea** widget is derived from the Tkinter Label widget. This means tha
 ### Methods
 
 * **copy( *[width] [, color] [, fill]* ) -** Returns a deep copy of the brush with optional new width, color, and/or fill values.
-    * ***width* : float, optional -** The new width assigned to the copy. **defaults to the current width**
+    * ***width* : float, optional -** The new width assigned to the copy. **defaults to the current width value**
     * ***color* : str | tuple, optional -** The new color assigned to the copy. **defaults to the current color**
-    * ***fill* : bool, optional -** The new fill value assigned to the copy. **defaults to the current fill**
+    * ***fill* : bool, optional -** The new fill value assigned to the copy. **defaults to the current fill value**
 
 ## LineCap
 

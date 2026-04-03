@@ -30,11 +30,10 @@ class Clock(tk.Frame):
         self._tick = -360 / 60
         self._hour = self._tick * 5
         self._noon_start = Vector.from_polar_coords(self._clock_radius, 90)
-        self._update()
+        self._update(datetime.today())
 
-    def _update(self):
-        """Update the clock display."""
-        time = datetime.today()
+    def _update(self, time):
+        """Update the clock display to the current time."""
         sec_angle = self._tick * (time.second + 1e-6 * time.microsecond)
         min_angle = self._tick * time.minute + (sec_angle / 60)
         hrs_angle = self._hour * (time.hour % 12) + (min_angle / 12)
@@ -46,7 +45,7 @@ class Clock(tk.Frame):
         self._clock.datapoint(Brush(3), (0, 0))
         self._clock.display()
 
-        self.after(20, self._update)  # Continuously update the clock display
+        self.after(20, self._update, datetime.today())  # Continue to update
 
     def _draw_face(self):
         """Draw the face."""

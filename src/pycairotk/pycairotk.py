@@ -19,7 +19,7 @@ This module provides the following class definitions:
 * Vector      - A class which represents a geometric vector in the xy plane
 """
 
-__version__ = '1.4.6'
+__version__ = '1.4.7'
 
 import enum
 import math
@@ -27,7 +27,7 @@ import warnings
 import platform
 import tkinter as tk
 from dataclasses import dataclass, replace
-from typing import Any, List, Tuple, Union, Optional, NamedTuple
+from typing import Any, List, Tuple, Union, Optional, NamedTuple, Sequence
 import cairo
 import numpy as np
 from PIL import Image, ImageTk, ImageColor
@@ -391,7 +391,7 @@ class DrawArea(tk.Label):
             The width of the graphics drawing area (in pixels)
         height: int
             The height of the graphics drawing area (in pixels)
-        antialias : Antialias, optional
+        antialias : Antialias
             The type of antialiasing used for rendering text or shapes
 
         Notes
@@ -549,10 +549,10 @@ class DrawArea(tk.Label):
         """
         if self._valid_coordinate(start) and self._valid_coordinate(end):
             self._context.save()  # Save the Previous Graphics Context
-            start = Vector(start[0], self.height - start[1])
-            end = Vector(end[0], self.height - end[1])
+            begin = Vector(start[0], self.height - start[1])
+            stop = Vector(end[0], self.height - end[1])
             self._context_set_line_properties(brush)
-            self._create_segment(-radius, start, end)
+            self._create_segment(-radius, begin, stop)
             self._context.stroke()
             self._context.restore()  # Restore the Previous Graphics Context
 
@@ -588,7 +588,7 @@ class DrawArea(tk.Label):
             base = Vector.from_polar_coords(width, -(angle + 90))
             end = position - Vector.from_polar_coords(6 * width, -angle)
             self._context_set_source_rgba(brush.color)
-            self._create_polygon([end - base, position, end + base])
+            self._create_polygon([end - base, position, end + base], None)
             self._context.fill()
             self._context.restore()  # Restore the Previous Graphics Context
         return Vector(end.x, self.height - end.y)
@@ -628,7 +628,7 @@ class DrawArea(tk.Label):
             The specified graphics rendering options
         center : Vector | tuple[float, float]
             The center location coordinates (in pixels)
-        shape : Shape, optional
+        shape : Shape
             The specified datapoint shape, default shape is a circle
         """
         if self._valid_coordinate(center):
@@ -666,7 +666,7 @@ class DrawArea(tk.Label):
             The center location coordinates (in pixels)
         size : Size | tuple[float, float]
             The width and height dimensions of the ellipse (in pixels)
-        angle : float, optional
+        angle : float
             The rotation angle (measured in degrees), default angle is 0.0
         """
         if self._valid_coordinate(center) and self._valid_dimensions(size):
@@ -680,7 +680,7 @@ class DrawArea(tk.Label):
                 self._context.arc(0, 0, 0.5 * width, 0, 2 * math.pi)
                 self._context.fill()
             if brush.line_width >= 0:
-                scale_factor = 0.5 * (width + height) / min(width, height)
+                scale_factor = 0.5 * ((width + height) / min(width, height))
                 local_brush = brush.copy(scale_factor * brush.line_width)
                 self._context_set_line_properties(local_brush)
                 self._context.arc(0, 0, 0.5 * width, -math.pi, math.pi)
@@ -772,8 +772,8 @@ class DrawArea(tk.Label):
     def polygon(
         self,
         brush: Brush,
-        coords: Union[List[Vector], List[Tuple[float, float]]],
-        segments: Union[List[int], List[float], None] = None,
+        coords: Sequence[Union[Vector, Tuple[float, float]]],
+        segments: Optional[Sequence[Union[int, float]]] = None,
     ):
         """Draw an enclosed region as defined by the coordinates and segments.
 
@@ -789,9 +789,9 @@ class DrawArea(tk.Label):
         ----------
         brush : Brush
             The specified graphics rendering options
-        coords : list[Vector] | list[tuple[float, float]]
+        coords : Sequence[Vector | tuple[float, float]]
             The list of the coordinates that define the polygon
-        segments : list[int] | list[float] | None, optional
+        segments : Sequence[int | float], optional
             The optional list of segment radii, defaults to all line segments
         """
         if self._valid_coord_list(coords) and self._valid_radii_list(segments):
@@ -859,7 +859,7 @@ class DrawArea(tk.Label):
             The center location coordinates (in pixels)
         side : float
             The side length of the square (in pixels)
-        angle : float, optional
+        angle : float
             The rotation angle (measured in degrees), default angle is 0.0
         """
         if self._valid_coordinate(center):
@@ -873,7 +873,7 @@ class DrawArea(tk.Label):
         """Determine the angle of a coordinate with respect to the origin."""
         return math.atan2(coord.y - origin.y, coord.x - origin.x)
 
-    def _create_polygon(self, vertices: List[Vector], segments: Any = None):
+    def _create_polygon(self, vertices: List[Vector], segments: Any):
         """Draw a polygon specified by the vertices and segments lists."""
         start = vertices[0]
         self._context.move_to(start.x, start.y)
@@ -921,7 +921,7 @@ class DrawArea(tk.Label):
         return brush.copy(width, self._rgba_color(brush.color, 4), fill)
 
     @staticmethod
-    def _rgba_color(color: Union[str, tuple], level: int = 1) -> tuple:
+    def _rgba_color(color: Any, level: int = 1) -> tuple:
         """Generate a floating point RGBA color value from various formats."""
         result: tuple = (0.0, 0.0, 0.0, 0.0)
         error_message = f"Invalid color value: '{color}'"
@@ -959,21 +959,21 @@ class DrawArea(tk.Label):
             warnings.warn(f"Not a valid size: '{value}'", stacklevel=3)
         return valid
 
-    def _valid_coord_list(self, coords: list) -> bool:
+    def _valid_coord_list(self, coords: Sequence) -> bool:
         """Test for a valid list of coordinate values."""
         valid = False
-        if isinstance(coords, list) and len(coords) > 2:
+        if isinstance(coords, Sequence) and len(coords) > 2:
             valid = all(self._valid_coordinate(vertex, 5) for vertex in coords)
         else:
             warnings.warn('coordinates count is less than 3', stacklevel=3)
         return valid
 
     @staticmethod
-    def _valid_radii_list(radii: Union[list, None]) -> bool:
+    def _valid_radii_list(radii: Optional[Sequence]) -> bool:
         """Test for a valid list of segment radii values or None."""
         valid = radii is None
         if radii is not None:
-            if isinstance(radii, list) and len(radii) > 2:
+            if isinstance(radii, Sequence) and len(radii) > 2:
                 valid = all(_is_number(value, 5) for value in radii)
             else:
                 warnings.warn('segment count is less than 3', stacklevel=3)
