@@ -19,14 +19,14 @@ This module provides the following class definitions:
 * Vector      - A class which represents a geometric vector in the xy plane
 """
 
-__version__ = '1.4.7'
+__version__ = '1.4.8'
 
 import enum
 import math
 import warnings
 import platform
 import tkinter as tk
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, field
 from typing import Any, List, Tuple, Union, Optional, NamedTuple, Sequence
 import cairo
 import numpy as np
@@ -96,6 +96,7 @@ class Brush:
         new_width = self.width if width is None else width
         new_color = self.color if color is None else color
         new_fill = self.fill if fill is None else fill
+        # noinspection PyTypeChecker
         return replace(self, width=new_width, color=new_color, fill=new_fill)
 
 
@@ -139,7 +140,7 @@ class TextStyle:
         A positive value displays outlined text, default is -1.0
     """
 
-    font: Font = Font()
+    font: Font = field(default_factory=Font)
     color: Union[str, tuple] = 'black'
     anchor: str = tk.LEFT
     angle: float = 0.0

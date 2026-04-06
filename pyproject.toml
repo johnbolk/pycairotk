@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pycairotk"
-version = "1.4.7"
+version = "1.4.8"
 description = "A Tkinter DrawArea wrapper class for the pycairo package."
 readme = "README.md"
 authors = [
