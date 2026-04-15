@@ -1,9 +1,8 @@
-from dataclasses import dataclass
+import enum
 
 __version__: str
 
-@dataclass(frozen=True)
-class Color:
+class Color(enum.Enum):
     Black: tuple
     Magenta: tuple
     Red: tuple

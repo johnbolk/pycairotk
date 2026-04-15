@@ -76,8 +76,7 @@ class Vector:
     def __xor__(self, other: Vector) -> float: ...
     def rotated(self, angle: float) -> Vector: ...
 
-@dataclass(frozen=True)
-class BorderStyle:
+class BorderStyle(enum.Enum):
     Raised: str
     Sunken: str
     Groove: str
