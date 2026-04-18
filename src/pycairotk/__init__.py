@@ -22,7 +22,7 @@ This package provides the following class and function definitions:
 * rgba_color  - Generates a floating point RGBA color from integer values
 """
 
-__version__ = '1.4.9'
+__version__ = '1.4.10'
 
 from cairo import LineCap, LineJoin, Antialias
 from .pycairotk import DrawArea, BorderStyle, Brush, Font, TextStyle, Shape, Size, Vector
